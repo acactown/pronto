@@ -3,17 +3,19 @@ module Pronto
     class GithubPullRequestFormatter
       def format(messages, repo, patches)
         client = Github.new(repo)
-        head = repo.head_commit_sha
+        sha = repo.head_commit_sha
 
-        commit_messages = messages.uniq.map do |message|
+        commit_messages = messages
+                              .select { |message| message.line.present? && message.path.present? }
+                              .uniq.map do |message|
           body = message.msg
           path = message.path
-          line = patches.find_line(message.full_path, message.line.new_lineno)
+          position = patches.find_line(message.full_path, message.line.new_lineno).position
 
-          create_comment(client, head, body, path, line.position)
+          create_comment(client, sha, body, path, position)
         end
 
-        "#{commit_messages.compact.count} Pronto messages posted to GitHub"
+        "#{commit_messages.compact.count} Pronto messages posted to GitHub PR"
       end
 
       private
